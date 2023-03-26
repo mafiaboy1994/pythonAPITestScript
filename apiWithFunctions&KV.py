@@ -60,9 +60,11 @@ azureADApplicationConnect(client_ID,tenant_ID,client_secret)
 #keyVaultConnect(keyvault_name,tenant_ID,client_ID,client_secret,keyname)
 apiCall(endpoint)
 
+#api raw data output 
 raw_data = apiCall(endpoint)
 #print(raw_data)
 
+#subscription data loop
 for data in raw_data["value"]:
     subscription_info = {'displayName': data['displayName'], 'id': data['id'], 'tenantID': data['tenantId']}
     #display_name = data["displayName"]
