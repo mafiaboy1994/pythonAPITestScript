@@ -19,6 +19,9 @@ client_secret = os.environ['CLIENT_SECRET']
 #standard Vars
 keyname='sasecret'
 
+#dictionaries
+subscription_info = {}
+
 def azureADApplicationConnect(client_ID,tenant_ID,client_secret):
     
     authentication_endpoint = "https://login.microsoftonline.com/"
@@ -49,9 +52,18 @@ def apiCall(endpoint):
     headers = {"Authorization": 'Bearer ' + access_token}
     json_output = requests.get(endpoint, headers=headers).json()
     #return json_output
-    print(access_token)
-    print(json_output)
+    #print(access_token)
+    return json_output
+    #print(json_output)
 
 azureADApplicationConnect(client_ID,tenant_ID,client_secret)
-keyVaultConnect(keyvault_name,tenant_ID,client_ID,client_secret,keyname)
+#keyVaultConnect(keyvault_name,tenant_ID,client_ID,client_secret,keyname)
 apiCall(endpoint)
+
+raw_data = apiCall(endpoint)
+#print(raw_data)
+
+for data in raw_data["value"]:
+    subscription_info = {'displayName': data['displayName'], 'id': data['id'], 'tenantID': data['tenantId']}
+    #display_name = data["displayName"]
+    print(subscription_info)
