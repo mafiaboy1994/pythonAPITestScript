@@ -5,6 +5,7 @@ import string
 import json
 import os
 import logging
+import re
 from azure.keyvault.secrets import SecretClient
 from azure.identity import DefaultAzureCredential
 from azure.identity import ClientSecretCredential
@@ -13,6 +14,8 @@ from dotenv import load_dotenv
 from azure.mgmt.storage import StorageManagementClient
 from urllib.parse import quote
 import azure.cosmos.cosmos_client as cosmos_client
+import azure.cosmos.database as cosmos_database
+from azure.cosmos import PartitionKey, exceptions
 load_dotenv()
 
 #Load OS Environment Variables
@@ -119,18 +122,73 @@ def storageAccountDataCleanup(raw_data,storageAccountsData):
 storageAccountDataCleaned=storageAccountDataCleanup(raw_data,storageAccountsData)
 #print(storageAccountDataCleaned)
 
-cosmosDBApiEndpoint = f"https://{cosmos_db_account}.documents.azure.com/dbs"
+#cosmosDBApiEndpoint = f"https://{cosmos_db_account}.documents.azure.com/dbs"
 
 def cosmosDBApiCall(cosmos_db_account,cosmos_db_key):
     client = cosmos_client.CosmosClient(cosmos_db_account,{'masterKey': cosmos_db_key})
     databases = list(client.list_databases())
     
-    for database in databases:
-        print(database['id'])
+    #for database in databases:
+        #print(f"found database "+database['id'])
     return databases
 
-cosmosDBApiCallResponse = cosmosDBApiCall(cosmos_db_account=cosmos_db_account,cosmos_db_key=cosmos_db_key)
-print(cosmosDBApiCallResponse)
+#cosmosDBApiCallResponse = cosmosDBApiCall(cosmos_db_account=cosmos_db_account,cosmos_db_key=cosmos_db_key)
+#print(cosmosDBApiCallResponse)
+
+#Get's Containers
+def cosmosDBContainers(cosmos_db_account,cosmos_db_key):
+    client = cosmos_client.CosmosClient(cosmos_db_account,{'masterKey': cosmos_db_key})
+    containers = cosmosDBApiCall(cosmos_db_account=cosmos_db_account, cosmos_db_key=cosmos_db_key)
+    containers_filtered_list=[]
+    for container in containers:
+        containerItems = {
+            "container_id" : container['id'],   
+            "resource_id" : container['_rid']
+        }
+        containers_filtered_list.append(containerItems)
+        
+    return containers_filtered_list
+
+
+
+
+cosmosdbcontainersresult=cosmosDBContainers(cosmos_db_account,cosmos_db_key)
+print(cosmosdbcontainersresult)
+
+#print(cosmosdbcontainersresult)
+#print(cosmosdbcontainersresult.__len__())
+
+#containerVariables
+dbName='storageAccounts'
+containerName='accountInfo'
+
+#search containers
+def cosmosDBContainersSearch(dbName):
+
+        #print('creating.......')
+        dbCreate=cosmos_client.CosmosClient.create_database_if_not_exists(id=dbName,partition_key='/id',self=cosmos_client.CosmosClient(url=cosmos_db_account,credential=cosmos_db_key))
+        dbCreateConv=str(dbCreate)
+        #containerCreate = cosmos_database.DatabaseProxy.create_container_if_not_exists(id=containerName,partition_key='/id', self=cosmos_client.CosmosClient(url=cosmos_db_account,credential=cosmos_db_key))
+        GetDBClient=cosmos_client.CosmosClient.get_database_client(database=dbName,self=cosmos_client.CosmosClient(url=cosmos_db_account,credential=cosmos_db_key))
+        containerCreate=GetDBClient.create_container_if_not_exists(id=containerName,partition_key=PartitionKey(path='/id'))
+        #cosmos_client.CosmosClient.get_database_client(self=cosmos_client.CosmosClient(cosmos_db_account,cosmos_db_key),database=dbName)
+        return dbCreate
+        print(GetDBClient)
+            
+#cosmosDBContainersSearch(dbName)
+
+#insert items
+def cosmosDBStorageAccountInfoInsert(dbName,storageAccountDataCleaned):
+    DBContainerSearchFun = cosmosDBContainersSearch(dbName)
+    GetContainerClient = DBContainerSearchFun.get_container_client(container=containerName)
+    
+    for storageAccount in storageAccountDataCleaned:
+        CreateItem = GetContainerClient.create_item(body=storageAccount)
+        print(CreateItem)
+    
+    
+
+cosmosDBStorageAccountInfoInsert(dbName,storageAccountDataCleaned)
 
 #cosmosDBApiResponse = cosmosDBApiCall(cosmosDBApiEndpoint)
 #print(cosmosDBApiResponse)
