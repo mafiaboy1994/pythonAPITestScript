@@ -185,16 +185,44 @@ def cosmosDBStorageAccountInfoInsert(dbName,storageAccountDataCleaned):
     GetContainerClient = DBContainerSearchFun.get_container_client(container=containerName)
         
     #for i,entry in enumerate(raw_data["value"], start=0)    
-    for storageAccount in storageAccountDataCleaned:
+    
+    #for i,storageAccount in storageAccountDataCleaned:
+    for i, storageAccount in enumerate(storageAccountDataCleaned, start=0):
     #for i,storageAccount in storageAccountDataCleaned:
 
     
         #SearchItems = GetContainerClient.read_item(item=storageAccount['name'], partition_key='/id')
         #allItems = GetContainerClient.read_item(item=storageAccount['name'], partition_key='/id')
 
+        
+        """"
         print(f"item {storageAccount['name']} not found")
         print(f"updating{storageAccount['name']} in cosmosDB")
-        CreateItem = GetContainerClient.upsert_item(body=storageAccount)
+        CreateItem = GetContainerClient.upsert_item(body=storageAccount
+        """
+        
+        # Read Items
+        
+        searchItem = list(GetContainerClient.query_items(
+            #query="SELECT * FROM storageAccounts WHERE storageAccounts.id=@id AND storageAccounts.name=@name", 
+            #query="SELECT * FROM storageAccounts WHERE storageAccounts.id ='@id' AND storageAccounts.name = @name",
+            query='SELECT * FROM storageAccounts  WHERE storageAccounts.name = @name AND storageAccounts.id=@id',
+            parameters=[
+                {
+                    "name": "@id", "value": storageAccount['id'],
+                    "name": "@name", "value": storageAccount['name']
+                }
+            ],
+            enable_cross_partition_query=True
+        ))
+        #print('Item Queried by ID {0}'.format(searchItem.get("name")))
+        print(searchItem)
+        
+        #if not searchItem:
+            #print(f"item {storageAccount['name']} not found")
+            #print(f"updating{storageAccount['name']} in cosmosDB")
+            #CreateItem = GetContainerClient.upsert_item(body=storageAccount
+
             
         #if not SearchItems:
             #print(f"item {storageAccount['name']} not found")
