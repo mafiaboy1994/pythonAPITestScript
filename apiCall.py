@@ -218,10 +218,10 @@ def cosmosDBStorageAccountInfoInsert(dbName,storageAccountDataCleaned):
         #print('Item Queried by ID {0}'.format(searchItem.get("name")))
         print(searchItem)
         
-        #if not searchItem:
-            #print(f"item {storageAccount['name']} not found")
-            #print(f"updating{storageAccount['name']} in cosmosDB")
-            #CreateItem = GetContainerClient.upsert_item(body=storageAccount
+        if not searchItem:
+            print(f"item {storageAccount['name']} not found")
+            print(f"creating{storageAccount['name']} in cosmosDB")
+            CreateItem = GetContainerClient.upsert_item(body=storageAccount
 
             
         #if not SearchItems:
