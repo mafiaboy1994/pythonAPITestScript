@@ -120,7 +120,7 @@ def storageAccountDataCleanup(raw_data,storageAccountsData):
     return storageAccountsData
 
 storageAccountDataCleaned=storageAccountDataCleanup(raw_data,storageAccountsData)
-#print(storageAccountDataCleaned)
+#print(storageAccountDataCleaned[0]['name'])
 
 #cosmosDBApiEndpoint = f"https://{cosmos_db_account}.documents.azure.com/dbs"
 
@@ -151,10 +151,10 @@ def cosmosDBContainers(cosmos_db_account,cosmos_db_key):
 
 
 
-
+#uncomment the below
 cosmosdbcontainersresult=cosmosDBContainers(cosmos_db_account,cosmos_db_key)
-print(cosmosdbcontainersresult)
 
+#print(cosmosdbcontainersresult)
 #print(cosmosdbcontainersresult)
 #print(cosmosdbcontainersresult.__len__())
 
@@ -173,21 +173,53 @@ def cosmosDBContainersSearch(dbName):
         containerCreate=GetDBClient.create_container_if_not_exists(id=containerName,partition_key=PartitionKey(path='/id'))
         #cosmos_client.CosmosClient.get_database_client(self=cosmos_client.CosmosClient(cosmos_db_account,cosmos_db_key),database=dbName)
         return dbCreate
-        print(GetDBClient)
-            
+        #print(GetDBClient)
+     
+     
+      
 #cosmosDBContainersSearch(dbName)
 
 #insert items
 def cosmosDBStorageAccountInfoInsert(dbName,storageAccountDataCleaned):
     DBContainerSearchFun = cosmosDBContainersSearch(dbName)
     GetContainerClient = DBContainerSearchFun.get_container_client(container=containerName)
-    
+        
+    #for i,entry in enumerate(raw_data["value"], start=0)    
     for storageAccount in storageAccountDataCleaned:
-        CreateItem = GetContainerClient.create_item(body=storageAccount)
-        print(CreateItem)
-    
-    
+    #for i,storageAccount in storageAccountDataCleaned:
 
+    
+        #SearchItems = GetContainerClient.read_item(item=storageAccount['name'], partition_key='/id')
+        #allItems = GetContainerClient.read_item(item=storageAccount['name'], partition_key='/id')
+
+        print(f"item {storageAccount['name']} not found")
+        print(f"updating{storageAccount['name']} in cosmosDB")
+        CreateItem = GetContainerClient.upsert_item(body=storageAccount)
+            
+        #if not SearchItems:
+            #print(f"item {storageAccount['name']} not found")
+            #print(f"creating{storageAccount['name']} in cosmosDB")
+            #CreateItem = GetContainerClient.create_item(body=storageAccount)
+        
+        """ except exceptions.CosmosResourceNotFoundError:
+            print(f"item {storageAccount['name']} not found")
+            print(f"creating{storageAccount['name']} in cosmosDB")
+            CreateItem = GetContainerClient.create_item(body=storageAccount)
+        """
+            
+        #if SearchItems:
+            #print(f"item {storageAccount['name']} already exists")
+            #print(f"updating item{storageAccount['name']} in cosmos db")
+            #UpdateItem = GetContainerClient.upsert_item(body=storageAccount)
+        
+        #if not SearchItems:
+            #CreateItem = GetContainerClient.create_item(body=storageAccount[i])
+            #print(CreateItem)
+        
+        
+    
+    
+#uncomment the below
 cosmosDBStorageAccountInfoInsert(dbName,storageAccountDataCleaned)
 
 #cosmosDBApiResponse = cosmosDBApiCall(cosmosDBApiEndpoint)
