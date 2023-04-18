@@ -43,8 +43,15 @@ config={
 #standard Vars
 keyname='sasecret'
 
+#containerVariables
+dbName='storageAccounts'
+containerName='accountInfo'
+
 #dictionaries
 subscription_info = {}
+
+
+
 
 def azureADApplicationConnect(config,tenant_ID): #client_ID,tenant_ID,client_secret):
     
@@ -83,6 +90,8 @@ def azureADApplicationConnect(config,tenant_ID): #client_ID,tenant_ID,client_sec
 saEndpoint = f"https://management.azure.com/subscriptions/{subId}/providers/Microsoft.Storage/storageAccounts?api-version=2022-09-01"
 
 
+
+
 def storageApiCall(saEndpoint):
     access_token = azureADApplicationConnect(config,tenant_ID)
     #print(access_token)
@@ -99,71 +108,60 @@ def storageApiCall(saEndpoint):
 
 
 raw_data = storageApiCall(saEndpoint)
+#print(raw_data)
 
 #print(raw_data["value"])
 
 # Blank Dictionary to get 
 storageAccountsData = []
 
-def storageAccountDataCleanup(raw_data,storageAccountsData):
-
-    for i,entry in enumerate(raw_data["value"], start=0):
-
-        saItems = {
-            'id': "{}".format(i),
-            'name': entry["name"],
-            'location': entry["location"],
-            'skuName': entry["sku"]["name"],
-            'skuTier': entry["sku"]["tier"] 
-        }
-        storageAccountsData.append(saItems)
-    return storageAccountsData
-
-storageAccountDataCleaned=storageAccountDataCleanup(raw_data,storageAccountsData)
-#print(storageAccountDataCleaned[0]['name'])
-
-#cosmosDBApiEndpoint = f"https://{cosmos_db_account}.documents.azure.com/dbs"
 
 def cosmosDBApiCall(cosmos_db_account,cosmos_db_key):
     client = cosmos_client.CosmosClient(cosmos_db_account,{'masterKey': cosmos_db_key})
-    databases = list(client.list_databases())
+    #databases = list(client.list_databases())
     
-    #for database in databases:
-        #print(f"found database "+database['id'])
-    return databases
+    
+    return client
 
 #cosmosDBApiCallResponse = cosmosDBApiCall(cosmos_db_account=cosmos_db_account,cosmos_db_key=cosmos_db_key)
 #print(cosmosDBApiCallResponse)
 
 #Get's Containers
 def cosmosDBContainers(cosmos_db_account,cosmos_db_key):
-    client = cosmos_client.CosmosClient(cosmos_db_account,{'masterKey': cosmos_db_key})
-    containers = cosmosDBApiCall(cosmos_db_account=cosmos_db_account, cosmos_db_key=cosmos_db_key)
-    containers_filtered_list=[]
-    for container in containers:
-        containerItems = {
-            "container_id" : container['id'],   
-            "resource_id" : container['_rid']
-        }
-        containers_filtered_list.append(containerItems)
-        
-    return containers_filtered_list
+    apiCall = cosmosDBApiCall(cosmos_db_account=cosmos_db_account, cosmos_db_key=cosmos_db_key)
+    db = apiCall.get_database_client('storageAccounts')
+    containers = db.get_container_client('accountInfo')
+    
+    return containers
+
+dbContainer = cosmosDBContainers(cosmos_db_account,cosmos_db_key)
+
+def fc_read_item(container, doc_id):
+    read_item = container.read_item(item=doc_id, partition_key=doc_id)
+    return read_item
+
+#insert items
+def cosmosDBStorageAccountInfoInsert(dbContainer,storageAccountsData):
+    #DBContainerSearchFun = cosmosDBContainersSearch(dbName)
+    #GetContainerClient = DBContainerSearchFun.get_container_client(container=containerName)
+    
+    
+    #for i,entry in enumerate(raw_data["value"], start=0)    
+    
+    #for i,storageAccount in storageAccountDataCleaned:
+    #for i, storageAccount in enumerate(storageAccountDataCleaned, start=0):
+    
+    containerTest = dbContainer
+    
+    CreateItem = containerTest.create_item(body=storageAccountsData)
+    #createItem = dbContainer.create_item(body=storageAccountsData)
+    #return containerTest
+
+#read_item=fc_read_item(dbContainer,'0')
+#print(read_item)
 
 
-
-#uncomment the below
-cosmosdbcontainersresult=cosmosDBContainers(cosmos_db_account,cosmos_db_key)
-
-#print(cosmosdbcontainersresult)
-#print(cosmosdbcontainersresult)
-#print(cosmosdbcontainersresult.__len__())
-
-#containerVariables
-dbName='storageAccounts'
-containerName='accountInfo'
-
-#search containers
-def cosmosDBContainersSearch(dbName):
+def cosmosDBContainersSearch(dbName,containerName):
 
         #print('creating.......')
         dbCreate=cosmos_client.CosmosClient.create_database_if_not_exists(id=dbName,partition_key='/id',self=cosmos_client.CosmosClient(url=cosmos_db_account,credential=cosmos_db_key))
@@ -174,81 +172,75 @@ def cosmosDBContainersSearch(dbName):
         #cosmos_client.CosmosClient.get_database_client(self=cosmos_client.CosmosClient(cosmos_db_account,cosmos_db_key),database=dbName)
         return dbCreate
         #print(GetDBClient)
-     
-     
-      
-#cosmosDBContainersSearch(dbName)
 
-#insert items
-def cosmosDBStorageAccountInfoInsert(dbName,storageAccountDataCleaned):
-    DBContainerSearchFun = cosmosDBContainersSearch(dbName)
-    GetContainerClient = DBContainerSearchFun.get_container_client(container=containerName)
+def storageAccountDataCleanup(raw_data,storageAccountsData,dbContainer):
+    for i,entry in enumerate(raw_data["value"], start=0):
+        try:
+            #replace Resource ID characters
+            subscriptionsReplace = entry['id'].replace("/subscriptions/", "")
+            newID = subscriptionsReplace.replace("/","_")
+            #newID.replace('_subscriptions', '')
+            saItems = {
+                'id': newID,
+                'name': entry["name"],
+                'location': entry["location"],
+                'skuName': entry["sku"]["name"],
+                'skuTier': entry["sku"]["tier"] 
+            }
+            storageAccountsData.append(saItems)
         
-    #for i,entry in enumerate(raw_data["value"], start=0)    
-    
-    #for i,storageAccount in storageAccountDataCleaned:
-    for i, storageAccount in enumerate(storageAccountDataCleaned, start=0):
-    #for i,storageAccount in storageAccountDataCleaned:
-
-    
-        #SearchItems = GetContainerClient.read_item(item=storageAccount['name'], partition_key='/id')
-        #allItems = GetContainerClient.read_item(item=storageAccount['name'], partition_key='/id')
-
-        
-        """"
-        print(f"item {storageAccount['name']} not found")
-        print(f"updating{storageAccount['name']} in cosmosDB")
-        CreateItem = GetContainerClient.upsert_item(body=storageAccount
-        """
-        
-        # Read Items
-        
-        searchItem = list(GetContainerClient.query_items(
-            #query="SELECT * FROM storageAccounts WHERE storageAccounts.id=@id AND storageAccounts.name=@name", 
-            #query="SELECT * FROM storageAccounts WHERE storageAccounts.id ='@id' AND storageAccounts.name = @name",
-            query='SELECT * FROM storageAccounts  WHERE storageAccounts.name = @name AND storageAccounts.id=@id',
-            parameters=[
-                {
-                    "name": "@id", "value": storageAccount['id'],
-                    "name": "@name", "value": storageAccount['name']
-                }
-            ],
-            enable_cross_partition_query=True
-        ))
-        #print('Item Queried by ID {0}'.format(searchItem.get("name")))
-        print(searchItem)
-        
-        if not searchItem:
-            print(f"item {storageAccount['name']} not found")
-            print(f"creating{storageAccount['name']} in cosmosDB")
-            CreateItem = GetContainerClient.upsert_item(body=storageAccount
-
+            #Call cosmos DB API
+            #Read items in cosmos DB, insert if values have changed
             
-        #if not SearchItems:
-            #print(f"item {storageAccount['name']} not found")
-            #print(f"creating{storageAccount['name']} in cosmosDB")
-            #CreateItem = GetContainerClient.create_item(body=storageAccount)
-        
-        """ except exceptions.CosmosResourceNotFoundError:
-            print(f"item {storageAccount['name']} not found")
-            print(f"creating{storageAccount['name']} in cosmosDB")
-            CreateItem = GetContainerClient.create_item(body=storageAccount)
-        """
+            var_id = saItems['id']
+            var_name = saItems["name"]
+
+            var_item = fc_read_item(dbContainer,var_id)
+            #print(var_item)
             
-        #if SearchItems:
-            #print(f"item {storageAccount['name']} already exists")
-            #print(f"updating item{storageAccount['name']} in cosmos db")
-            #UpdateItem = GetContainerClient.upsert_item(body=storageAccount)
+            result=cosmosDBStorageAccountInfoInsert(dbContainer,saItems)
+                
+        except exceptions.CosmosResourceNotFoundError:
+            pass
+            print(f"{var_name} item not found")
+            print(f"inserting {var_name} item")
+            result=cosmosDBStorageAccountInfoInsert(dbContainer,saItems)
+            #print(result)
         
-        #if not SearchItems:
-            #CreateItem = GetContainerClient.create_item(body=storageAccount[i])
-            #print(CreateItem)
+        except exceptions.CosmosResourceExistsError:
+            pass
+            print(f"{var_name} item found")
+            print(f"updating {var_name} item")
         
-        
-    
-    
+        #if var_item:
+            #print(f'also found item {var_item} in search')
+                
+    #return storageAccountsData
+
 #uncomment the below
-cosmosDBStorageAccountInfoInsert(dbName,storageAccountDataCleaned)
+storageAccountDataCleaned=storageAccountDataCleanup(raw_data,storageAccountsData,dbContainer)
 
-#cosmosDBApiResponse = cosmosDBApiCall(cosmosDBApiEndpoint)
-#print(cosmosDBApiResponse)
+
+#print(storageAccountDataCleaned)
+
+#cosmosDBApiEndpoint = f"https://{cosmos_db_account}.documents.azure.com/dbs"
+
+
+
+#uncomment the below
+#cosmosdbcontainersresult=cosmosDBContainers(cosmos_db_account,cosmos_db_key)
+
+#print(cosmosdbcontainersresult)
+
+
+
+#search containers
+#Below not called or used
+
+     
+
+
+        
+
+#uncomment the below
+#cosmosDBStorageAccountInfoInsert(dbName,storageAccountDataCleaned)
