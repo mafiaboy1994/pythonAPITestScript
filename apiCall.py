@@ -153,7 +153,7 @@ def cosmosDBStorageAccountInfoInsert(dbContainer,storageAccountsData):
     
     containerTest = dbContainer
     
-    CreateItem = containerTest.create_item(body=storageAccountsData)
+    CreateItem = containerTest.upsert_item(body=storageAccountsData)
     #createItem = dbContainer.create_item(body=storageAccountsData)
     #return containerTest
 
@@ -196,10 +196,11 @@ def storageAccountDataCleanup(raw_data,storageAccountsData,dbContainer):
             var_name = saItems["name"]
 
             var_item = fc_read_item(dbContainer,var_id)
-            #print(var_item)
+            print(var_item['id'])
             
-            result=cosmosDBStorageAccountInfoInsert(dbContainer,saItems)
-                
+            #result=cosmosDBStorageAccountInfoInsert(dbContainer,saItems)
+        
+        # Handles Exception for var_item read function call so that if the resource is not found in cosmos DB, this will supress the exception and insert items   
         except exceptions.CosmosResourceNotFoundError:
             pass
             print(f"{var_name} item not found")
@@ -207,10 +208,26 @@ def storageAccountDataCleanup(raw_data,storageAccountsData,dbContainer):
             result=cosmosDBStorageAccountInfoInsert(dbContainer,saItems)
             #print(result)
         
-        except exceptions.CosmosResourceExistsError:
-            pass
-            print(f"{var_name} item found")
-            print(f"updating {var_name} item")
+        # Handles Exception for updating items that already exist. This supresses the exception and will update items if the other properties have changed
+        #except exceptions.CosmosResourceExistsError:
+            #pass
+            #print(f"{var_name} item found")
+            #print(f"updating {var_name} item")
+        
+        if var_item['name'] != saItems['name']:
+            result=cosmosDBStorageAccountInfoInsert(dbContainer,saItems)
+            
+        elif var_item['location'] != saItems['location']:
+            result=cosmosDBStorageAccountInfoInsert(dbContainer,saItems)
+            
+        elif var_item['skuName'] != saItems['skuName']:
+            result=cosmosDBStorageAccountInfoInsert(dbContainer,saItems)
+        
+        elif var_item['skuTier'] != saItems['skuTier']:
+            result=cosmosDBStorageAccountInfoInsert(dbContainer,saItems)
+            
+        else:
+            print(f"item {var_id} remains unchanged, moving onto next item")
         
         #if var_item:
             #print(f'also found item {var_item} in search')
@@ -227,20 +244,4 @@ storageAccountDataCleaned=storageAccountDataCleanup(raw_data,storageAccountsData
 
 
 
-#uncomment the below
-#cosmosdbcontainersresult=cosmosDBContainers(cosmos_db_account,cosmos_db_key)
-
-#print(cosmosdbcontainersresult)
-
-
-
-#search containers
-#Below not called or used
-
      
-
-
-        
-
-#uncomment the below
-#cosmosDBStorageAccountInfoInsert(dbName,storageAccountDataCleaned)
