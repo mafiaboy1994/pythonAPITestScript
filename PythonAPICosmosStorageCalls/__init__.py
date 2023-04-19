@@ -47,10 +47,6 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     'scope': ["https://management.azure.com/.default"]
     }
 
-
-    
-
-
     #standard Vars
     keyname='sasecret'
     
@@ -196,22 +192,14 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
                 var_item = fc_read_item(dbContainer,var_id)
                 print(var_item['name'])
-            
-                #result=cosmosDBStorageAccountInfoInsert(dbContainer,saItems)
-        
+                    
                 #Handles Exception for var_item read function call so that if the resource is not found in cosmos DB, this will supress the exception and insert items   
             except exceptions.CosmosResourceNotFoundError:
                 pass
                 print(f"{var_name} item not found")
                 print(f"inserting {var_name} item")
                 result=cosmosDBStorageAccountInfoInsert(dbContainer,saItems)
-                #print(result)
-        
-            # Handles Exception for updating items that already exist. This supresses the exception and will update items if the other properties have changed
-            #except exceptions.CosmosResourceExistsError:
-                #pass
-                #print(f"{var_name} item found")
-                #print(f"updating {var_name} item")
+    
                 
             else:
                 if var_item['name'] != saItems['name']:
@@ -237,14 +225,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 
     #uncomment the below
     storageAccountDataCleaned=storageAccountDataCleanup(raw_data,storageAccountsData,dbContainer)
-
-
-    #print(storageAccountDataCleaned)
-
-    #cosmosDBApiEndpoint = f"https://{cosmos_db_account}.documents.azure.com/dbs"
-
-    
-    
+      
     name = req.params.get('name')
     if not name:
         try:
