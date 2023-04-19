@@ -142,23 +142,11 @@ def fc_read_item(container, doc_id):
 
 #insert items
 def cosmosDBStorageAccountInfoInsert(dbContainer,storageAccountsData):
-    #DBContainerSearchFun = cosmosDBContainersSearch(dbName)
-    #GetContainerClient = DBContainerSearchFun.get_container_client(container=containerName)
-    
-    
-    #for i,entry in enumerate(raw_data["value"], start=0)    
-    
-    #for i,storageAccount in storageAccountDataCleaned:
-    #for i, storageAccount in enumerate(storageAccountDataCleaned, start=0):
-    
+
     containerTest = dbContainer
     
     CreateItem = containerTest.upsert_item(body=storageAccountsData)
-    #createItem = dbContainer.create_item(body=storageAccountsData)
-    #return containerTest
 
-#read_item=fc_read_item(dbContainer,'0')
-#print(read_item)
 
 
 def cosmosDBContainersSearch(dbName,containerName):
